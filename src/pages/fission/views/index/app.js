@@ -3,6 +3,7 @@ import VueRouter from 'vue-router';
 import Axios from '@/services';
 import "@/utils/mta";
 import '@/assets/css/reset.scss';
+import variable from '@/utils/variable'
 
 import LoadingPlugin from 'vux/src/plugins/loading';
 import ToastPlugin from 'vux/src/plugins/toast';
@@ -16,6 +17,7 @@ Vue.use(VueRouter);
 Vue.use(LoadingPlugin);
 Vue.use(ToastPlugin);
 Vue.use(AlertPlugin);
+Vue.use(variable)
 
 Vue.prototype.$http = Axios;
 

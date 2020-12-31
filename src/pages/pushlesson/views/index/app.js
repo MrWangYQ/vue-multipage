@@ -3,7 +3,9 @@ import '@/utils/flexible';
 import '@/assets/css/reset.scss';
 import Axios from '@/services';
 import App from './app.vue';
+import variable from '@/utils/variable'
 
+Vue.use(variable)
 Vue.prototype.$http = Axios;
 
 /* eslint no-new: 0 */

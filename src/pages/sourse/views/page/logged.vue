@@ -108,8 +108,7 @@ import "@/utils/audioPlayPlugin";
 import { transTime } from "@/common";
 import Page from "@/components/page/index";
 import Guide from "@/components/guide/index";
-import Api from "@/api/apijson";
-
+import Api from "../../services/apilist";
 import isIphoneX from '@/utils/isIphoneX';
 
 export default {
@@ -217,28 +216,51 @@ export default {
     /**
      * 分享
      */
-    async share() {
+    share() {
       try {
-        let { code, data, message } = await this.$api.resourceShare({ number: this.ssResourceId, shareUrl: window.location.href });
-          if (code == 200) {
-            this.getShareInfo(data);
+        // let { code, data, message } = await this.$api.resourceShare({ number: this.ssResourceId, shareUrl: window.location.href });
+        this.$http.post(
+          { api: Api.resourceShare, type: 'fromdata' },
+          { number: this.ssResourceId, shareUrl: window.location.href },
+          function success(res) {
+            console.log(res);
+            let { code, data } = res;
+
+            if (code == 200) {
+              this.getShareInfo(data);
+            }
+          },
+          function fail(error) {
+            console.log(error);
           }
-          console.log(data, "256");
+        )
       } catch (error) {
       }
     },
     /**
      * 获取资源配置
      */
-    async resourceQueryResource(params = {}) {
+    resourceQueryResource(params = {}) {
       try {
-        let { code, data, msg } = await this.$api.resourceQueryResource(params);
+        // let { code, data, msg } = await this.$api.resourceQueryResource(params);
         
-        if (code == 200) {
-          this.catchStatus(data);
-        } else {
-          console.log(msg);
-        }
+        this.$http.post(
+          { api: Api.resourceQueryResource, type: 'fromdata' },
+          params,
+          function success(res) {
+            console.log(res);
+            let { code, data, msg } = res;
+
+            if (code == 200) {
+              _this.catchStatus(data);
+            } else {
+              console.log(msg);
+            }
+          },
+          function fail(error) {
+            console.log(error);
+          },
+        )
       } catch (error) {
         console.log(error+'239');
       }
@@ -247,9 +269,34 @@ export default {
     /**
      * 检验是否 登录
      */
-    async getProjectBaseInfo(params) {
+    getProjectBaseInfo(params) {
       try {
-        let data = await this.$api.getProjectBaseInfo(params);
+        // let data = await this.$api.getProjectBaseInfo(params);
+        this.$http.get(
+          { api: Api.getProjectBaseInfo, type: 'fromdata' },
+          params,
+          function success(res) {
+            console.log(res);
+          },
+          function fail(error) {
+            console.log(error);
+            let { status, info, data } = error;
+
+            if (status == 1) {
+              if (data.user_id) {
+
+                _this.saveConfValue.val = data.user_id;
+                _this.logged = true;
+              } else {
+                _this.loginVisible = true;
+                // 获取最新的 at
+                _this.AjaxAccessTicket({ client: 1 });
+                console.log(info);
+              }
+              _this.loginList.user_id = data.user_id;
+            }
+          }
+        )
       } catch (error) {
         let { status, info, data } = error;
 
@@ -273,22 +320,36 @@ export default {
     /**
      * 获取登录信息
      */
-    async AjaxAccessTicket(params) {
+    AjaxAccessTicket(params) {
       // alert(JSON.stringify(params)+'--275');
       try {
-        let {
-          data: { code, res, message }
-        } = await this.$http.get(Api.AjaxAccessTicket, params);
+        // let {
+        //   data: { code, res, message }
+        // } = await this.$http.get(Api.AjaxAccessTicket, params);
 
         // let { code, res, message } = await this.$api.AjaxAccessTicket(params);
 
-        if (code == 10000) {
-          if (res && res.at) {
-            this.loginList.at = res.at;
+        this.$http.get(
+          { api: Api.AjaxAccessTicket, type: 'fromdata' },
+          params,
+          function success(data) {
+            let { code, res, message } = data;
+
+            console.log(res);
+          },
+          function fail(error) {
+            console.log(error);
+            let { code, res, message } = error;
+
+            if (code == 10000) {
+              if (res && res.at) {
+                _this.loginList.at = res.at;
+              }
+            } else {
+              console.log(message, "131");
+            }
           }
-        } else {
-          console.log(message, "131");
-        }
+        )
 
         // alert(this.loginList.at+'---278--'+res.at);
       } catch (error) {
@@ -296,24 +357,35 @@ export default {
       }
     },
     /** 进入到 答案页面 调用 */
-    async saveConfValueByField() {
+    saveConfValueByField() {
       let params = this.saveConfValue;
 
       try {
-        let { data, status, info } = await this.$api.saveConfValueByField(params);
-        if (status == 1) {
+        // let { data, status, info } = await this.$api.saveConfValueByField(params);
+        this.$http.post(
+          { api: Api.saveConfValueByField, type: 'fromdata' },
+          params,
+          function success(res) {
+            let { data, status, info } = res;
 
-        }
+            if (status == 1) {
+
+            }
+
+            console.log(res);
+          },
+          function fail(error) {
+            console.log(error);
+            let { data, status, info } = error;
+
+            if (status == 1) {
+
+            }
+          },
+        )
       } catch (error) {
         console.log(error);
       }
-    },
-    /**
-     * 取 URL 的参数
-     */
-    getQueryUrl(key) {
-      var params = this.getHashParameters();
-      return params[key] || "";
     },
     /**
      * 处理 状态
@@ -401,26 +473,6 @@ export default {
       
     },
     /**
-     * 取 URL 参数
-     */
-    getHashParameters() {
-      try {
-        let hash = location.hash || "";
-        let arr = hash.split("?")[1].split("&");
-
-        let params = {};
-        for (let i = 0; i < arr.length; i++) {
-          let data = arr[i].split("=");
-          if (data.length === 2) {
-            params[data[0]] = data[1];
-          }
-        }
-        return params;
-      } catch (error) {
-        // this.RouterGO("/error");
-      }
-    },
-    /**
      * 路由跳转
      */
     RouterGO(toPath) {
@@ -447,34 +499,46 @@ export default {
     /**
      * 获取日志
      */
-    async resourceLog(params) {
+    resourceLog(params) {
 
       try {
-        let { code, data, message } = await this.$api.ResourceLog(params);
+        // let { code, data, message } = await this.$api.ResourceLog(params);
         
-        if (code == 200) {
-          
-          let { status, shortUrl } = data;
+        this.$http.post(
+          { api: Api.ResourceLog, type: 'fromdata' },
+          params,
+          function success(res) {
+            console.log(res);
+            let { code, data, message } = res;
 
-          switch (Number(status)) {
-            case 0:
-              
-              break;
-            case 1: 
-              this.loginVisible = true;
-              break;
-            case 2:
-              window.location.href = shortUrl;
-              break;
-            case 3:
-            case 4: 
-              // this.RouterGO('/error');
-              break;
-            default:
-              // this.RouterGO('/error');
-              break;
-          }
-        }
+            if (code == 200) {
+          
+              let { status, shortUrl } = data;
+
+              switch (Number(status)) {
+                case 0:
+                  
+                  break;
+                case 1: 
+                  this.loginVisible = true;
+                  break;
+                case 2:
+                  window.location.href = shortUrl;
+                  break;
+                case 3:
+                case 4: 
+                  this.RouterGO('/error');
+                  break;
+                default:
+                  this.RouterGO('/error');
+                  break;
+              }
+            }
+          },
+          function fail(error) {
+            console.log(error);
+          },
+        )
       } catch (error) {
         console.log(error);
       }
@@ -537,7 +601,7 @@ export default {
     /**
      * 获取某一记录内容
      */
-    async getOpProjectInfo(params) {
+    getOpProjectInfo(params) {
       let Newparams = {
         projectId: params.projectId,
         itemId: params.itemId,
@@ -546,7 +610,36 @@ export default {
       }
 
       try {
-        let { status, info, data } = await this.$api.getOpProjectInfo(Newparams);
+        // let { status, info, data } = await this.$api.getOpProjectInfo(Newparams);
+        this.$http.post(
+          { api: Api.getOpProjectInfo, type: 'fromdata' },
+          params,
+          function success(res) {
+            console.log(res);
+            let { status, info, data } = res;
+
+            if (status == 1) {
+              if (data) {
+                _this.pageList.play_count = data.play_count || 0;
+              }
+            } else {
+              console.log(info, "131");
+            }
+          },
+          function fail(error) {
+            console.log(error);
+
+            let { status, info, data } = error;
+
+            if (status == 1) {
+              if (data) {
+                _this.pageList.play_count = data.play_count || 0;
+              }
+            } else {
+              console.log(info, "131");
+            }
+          },
+        )
       } catch (error) {
         let { status, info, data } = error;
 
@@ -562,7 +655,7 @@ export default {
     /**
      * 更新某一字段值 自增
      */
-    async OpProjectRecordAmount(params) {
+    OpProjectRecordAmount(params) {
 
       let Newparams = {
         projectId: params.projectId,
@@ -571,7 +664,17 @@ export default {
       }
       
       try {
-        let { status, info, data } = await this.$api.OpProjectRecordAmount(Newparams);
+        // let { status, info, data } = await this.$api.OpProjectRecordAmount(Newparams);
+        this.$http.post(
+          { api: Api.OpProjectRecordAmount, type: 'fromdata' },
+          params,
+          function success(res) {
+            console.log(res);
+          },
+          function fail(error) {
+            console.log(error);
+          },
+        )      
       } catch (error) {
         let { status, info, data } = error;
 
@@ -635,7 +738,7 @@ export default {
     /**
      * 10 s 处理数据
      */
-    async handleRangeTime() {
+    handleRangeTime() {
       console.log('进来了');
       let { ssResourceId, watchId } = this;
 
@@ -645,8 +748,17 @@ export default {
       };
 
       try {
-        let { data, code, message } = await this.$api.watchTime(params);
-        
+        // let { data, code, message } = await this.$api.watchTime(params);
+        this.$http.post(
+          { api: Api.watchTime, type: 'fromdata' },
+          params,
+          function success(res) {
+            console.log(res);
+          },
+          function fail(error) {
+            console.log(error);
+          },
+        )
         if (code == 200) {
           // console.log(data, message, '635');
         } else {

@@ -14,6 +14,7 @@ const apiList = {
   ResourceLog: baseURL + '/api/ss/resource/log',
   getOpProjectInfo: '//junior.51talk.com/Mobile/OpProject/getOpProjectInfo',
   OpProjectRecordAmount: '//junior.51talk.com/Mobile/OpProject/recordAmount',
+  watchTime: '/api/ss/resource/watchTime',
 }
 
 export default apiList;
